@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import cz.msebera.android.httpclient.HttpEntity;
 import cz.msebera.android.httpclient.HttpResponse;
@@ -45,6 +46,10 @@ class CommunicationThread extends Thread{
         this.socket = socket;
     }
 
+    public static long cacheTest(Date now, Date updated) {
+        return TimeUnit.MINUTES.convert(new Date().getTime() - updated.getTime(), TimeUnit.MILLISECONDS);
+    }
+
     @Override
     public void run() {
         if (socket == null) {
@@ -70,7 +75,7 @@ class CommunicationThread extends Thread{
             Information information = null;
 //            // IN CAZ CA VREA CU HASHMAP, RAMANE PARTEA ASTA
 
-            if (data.containsKey(informationType) && (new Date().getTime() - new Date(updated).getTime()) <= 1) {
+            if (data.containsKey(informationType) && cacheTest(new Date(), new Date(updated)) <= 1) {
                 Log.i("[PracticalTest02]", "[COMMUNICATION THREAD] Getting the information from the cache...");
                 information = data.get(informationType);
             } else {
