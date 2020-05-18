@@ -10,7 +10,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -34,6 +37,8 @@ class CommunicationThread extends Thread{
 
     private ServerThread serverThread;
     private Socket socket;
+    private String updated;
+
 
     public CommunicationThread(ServerThread serverThread, Socket socket) {
         this.serverThread = serverThread;
@@ -61,46 +66,49 @@ class CommunicationThread extends Thread{
                 Log.e("[PracticalTest02]", "[COMMUNICATION THREAD] Error receiving parameters from client (city / information type!");
                 return;
             }
-            Information data = serverThread.getData();
+            HashMap<String, Information> data = serverThread.getData();
             Information information = null;
-            // IN CAZ CA VREA CU HASHMAP, RAMANE PARTEA ASTA
-//            if (data.containsKey(city)) {
-//                Log.i("[PracticalTest02]", "[COMMUNICATION THREAD] Getting the information from the cache...");
-//                weatherForecastInformation = data.get(city);
-//            } else {
-            Log.i("[PracticalTest02]", "[COMMUNICATION THREAD] Getting the information from the webservice...");
-            HttpClient httpClient = new DefaultHttpClient();
-            String pageSourceCode = "";
+//            // IN CAZ CA VREA CU HASHMAP, RAMANE PARTEA ASTA
+
+            if (data.containsKey(informationType) && (new Date().getTime() - new Date(updated).getTime()) <= 1) {
+                Log.i("[PracticalTest02]", "[COMMUNICATION THREAD] Getting the information from the cache...");
+                information = data.get(informationType);
+            } else {
+                Log.i("[PracticalTest02]", "[COMMUNICATION THREAD] Getting the information from the webservice...");
+                HttpClient httpClient = new DefaultHttpClient();
+                String pageSourceCode = "";
 
 
-            HttpGet httpGet = new HttpGet("https://api.coindesk.com/v1/bpi/currentprice/" + informationType + ".json");
-            HttpResponse httpGetResponse = httpClient.execute(httpGet);
-            HttpEntity httpGetEntity = httpGetResponse.getEntity();
-            if (httpGetEntity != null) {
-                pageSourceCode = EntityUtils.toString(httpGetEntity);
+                HttpGet httpGet = new HttpGet("https://api.coindesk.com/v1/bpi/currentprice/" + informationType + ".json");
+                HttpResponse httpGetResponse = httpClient.execute(httpGet);
+                HttpEntity httpGetEntity = httpGetResponse.getEntity();
+                if (httpGetEntity != null) {
+                    pageSourceCode = EntityUtils.toString(httpGetEntity);
 
+                }
+
+                if (pageSourceCode == null) {
+                    Log.e("[PracticalTest02]", "[COMMUNICATION THREAD] Error getting the information from the webservice!");
+                    return;
+                } else
+                    Log.i("[PracticalTest02]", pageSourceCode);
+
+
+                JSONObject content = new JSONObject(pageSourceCode);
+                JSONObject main = content.getJSONObject("bpi");
+                JSONObject type = main.getJSONObject(informationType);
+                String code = type.getString("code");
+                String rate = type.getString("rate");
+                String description = type.getString("description");
+                String rate_float = type.getString("rate_float");
+                JSONObject time = content.getJSONObject("time");
+                updated = time.getString("updated");
+                information = new Information(
+                        code, rate, description, rate_float
+                );
+
+                information = new Information(code, rate, description, rate_float);
             }
-
-            if (pageSourceCode == null) {
-                Log.e("[PracticalTest02]", "[COMMUNICATION THREAD] Error getting the information from the webservice!");
-                return;
-            } else
-                Log.i("[PracticalTest02]", pageSourceCode );
-
-
-            JSONObject content = new JSONObject(pageSourceCode);
-            JSONObject main = content.getJSONObject("bpi");
-            JSONObject type = main.getJSONObject(informationType);
-            String code = type.getString("code");
-            String rate = type.getString("rate");
-            String description = type.getString("description");
-            String rate_float = type.getString("rate_float");
-            JSONObject time = content.getJSONObject("time");
-            information = new Information(
-                    code, rate, description, rate_float
-            );
-
-            information = new Information(code, rate, description, rate_float);
 
             if (information == null) {
                 Log.e("[PracticalTest02]", "[COMMUNICATION THREAD] Weather Forecast Information is null!");

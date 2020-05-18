@@ -5,6 +5,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 
 import cz.msebera.android.httpclient.client.ClientProtocolException;
 import ro.pub.cs.systems.eim.practicaltest02.Information;
@@ -13,7 +14,7 @@ public class ServerThread extends Thread {
     private int port = 0;
     private ServerSocket serverSocket = null;
 
-    Information data = null;
+    private HashMap<String, Information> data = null;
 
     public ServerThread(int port) {
         this.port = port;
@@ -25,7 +26,7 @@ public class ServerThread extends Thread {
                 ioException.printStackTrace();
             }
         }
-        this.data = new Information();
+        this.data = new HashMap<>();
     }
 
     @Override
@@ -67,11 +68,11 @@ public class ServerThread extends Thread {
         return serverSocket;
     }
 
-    public void setData(String city, Information information) {
-        this.data = information;
+    public synchronized void setData(String city, Information weatherForecastInformation) {
+        this.data.put(city, weatherForecastInformation);
     }
 
-    public Information getData() {
+    public synchronized HashMap<String, Information> getData() {
         return data;
     }
 
